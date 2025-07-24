@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Link from 'next/link';
 
 interface SidebarProps {
   className?: string;
@@ -20,7 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
             />
           </div>
           <nav className="w-[172px] max-w-full mt-8">
-            <div className="bg-[rgba(255,255,255,0)] flex w-full items-stretch gap-4 p-3 rounded-xl">
+            <Link href="/" className="bg-[rgba(255,255,255,0)] flex w-full items-stretch gap-4 p-3 rounded-xl">
               <div className="flex items-center justify-center w-4 my-auto">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/4c4eca42393d27c1d3806538afe6ad1e1335c3cd?placeholderIfAbsent=true"
@@ -31,8 +32,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <div className="flex items-center gap-2.5 text-sm text-white font-bold whitespace-nowrap h-full">
                 <div className="self-stretch my-auto">Dashboard</div>
               </div>
-            </div>
-            <div className="flex items-stretch gap-4 mt-3 p-3 rounded-xl">
+            </Link>
+            <Link href="/cadastrar-carta" className="flex items-stretch gap-4 mt-3 p-3 rounded-xl hover:bg-gray-800 transition-colors">
               <div className="flex items-center justify-center my-auto">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/1436503f58e717eb1263e201d3513886c51ea20b?placeholderIfAbsent=true"
@@ -43,8 +44,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <div className="flex items-center gap-2.5 text-sm text-white font-bold h-full">
                 <div className="self-stretch my-auto">Cadastrar Carta</div>
               </div>
-            </div>
-            <div className="bg-[rgba(255,255,255,0)] flex w-full items-stretch gap-4 mt-3 p-3 rounded-xl">
+            </Link>
+            <Link href="/cartas-emitidas" className="bg-[rgba(255,255,255,0)] flex w-full items-stretch gap-4 mt-3 p-3 rounded-xl">
               <div className="flex min-h-4 items-center justify-center w-4 my-auto">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/fc660a0440c62906e914176573966a27f81d26b1?placeholderIfAbsent=true"
@@ -55,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
               <div className="flex items-center gap-2.5 text-sm text-white font-bold h-full">
                 <div className="self-stretch my-auto">Cartas Emitidas</div>
               </div>
-            </div>
+            </Link>
             <div className="bg-[rgba(255,255,255,0)] flex w-full items-center gap-4 mt-3 p-3 rounded-xl">
               <div className="self-stretch flex items-center justify-center w-4 my-auto">
                 <img
