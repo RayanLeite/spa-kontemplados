@@ -1,115 +1,90 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import React, { useState } from 'react';
+import { Sidebar } from '@/components/dashboard/Sidebar';
+import { Header } from '@/components/dashboard/Header';
+import { CreditTypeSelector } from '@/components/dashboard/CreditTypeSelector';
+import { AdministratorSelector } from '@/components/dashboard/AdministratorSelector';
+import { CreditValueForm } from '@/components/dashboard/CreditValueForm';
+import { InstallmentForm } from '@/components/dashboard/InstallmentForm';
+import { CommissionSection } from '@/components/dashboard/CommissionSection';
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const Index = () => {
+  const [creditType, setCreditType] = useState<string>('imovel');
+  const [administrator, setAdministrator] = useState<string>('selected');
+  const [creditValue, setCreditValue] = useState<string>('R$ 445.000,00');
+  const [entryValue, setEntryValue] = useState<string>('R$ 00.000,00');
+  const [installments, setInstallments] = useState<string>('000x');
+  const [installmentValue, setInstallmentValue] = useState<string>('R$ 0.000,00');
+  const [dueDate, setDueDate] = useState<string>('14 / 10 / 2025');
 
-export default function Home() {
+  const handleCreditTypeSelect = (type: string) => {
+    setCreditType(type);
+  };
+
+  const handleAdministratorSelect = (admin: string) => {
+    setAdministrator(admin);
+  };
+
+  const handleValuesChange = (credit: string, entry: string) => {
+    setCreditValue(credit);
+    setEntryValue(entry);
+  };
+
+  const handleInstallmentChange = (inst: string, instValue: string, due: string) => {
+    setInstallments(inst);
+    setInstallmentValue(instValue);
+    setDueDate(due);
+  };
+
+  const handleSubmit = () => {
+    const formData = {
+      creditType,
+      administrator,
+      creditValue,
+      entryValue,
+      installments,
+      installmentValue,
+      dueDate,
+    };
+    
+    console.log('Form submitted with data:', formData);
+    alert('Carta de Crédito cadastrada com sucesso!');
+  };
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div className="bg-white flex items-stretch justify-center min-h-screen">
+      <div className="flex min-w-60 w-full flex-col items-stretch justify-center flex-1 shrink basis-[0%] p-[22px] max-md:max-w-full max-md:px-5">
+        <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
+          <Sidebar className="bg-gradient-to-b from-gray-800 to-gray-900" />
+          
+          <main className="bg-white min-w-60 flex-1 shrink basis-16 rounded-[32px] max-md:max-w-full">
+            <Header 
+              title="Cadastrar Carta de Crédito" 
+              className="bg-gradient-to-r from-gray-800 to-gray-900"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            
+            <div className="min-h-[704px] w-full mt-[22px] max-md:max-w-full">
+              <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
+                <CreditTypeSelector onTypeSelect={handleCreditTypeSelect} />
+                
+                <div className="flex min-w-60 gap-[22px] flex-1 shrink basis-16 max-md:max-w-full">
+                  <AdministratorSelector onAdministratorSelect={handleAdministratorSelect} />
+                </div>
+              </div>
+              
+              <div className="flex w-full gap-[22px] flex-wrap mt-[22px] max-md:max-w-full">
+                <CreditValueForm onValuesChange={handleValuesChange} />
+                <InstallmentForm onInstallmentChange={handleInstallmentChange} />
+              </div>
+              
+              <CommissionSection onSubmit={handleSubmit} />
+            </div>
+          </main>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
-}
+};
+
+export default Index;
+
