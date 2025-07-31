@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 
 interface InstallmentFormProps {
-  onInstallmentChange: (installments: string, installmentValue: string, dueDate: string) => void;
+  onInstallmentChange: (installments: number, installmentValue: number, dueDate: string) => void;
   className?: string;
 }
 
@@ -10,18 +9,20 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
   onInstallmentChange, 
   className = '' 
 }) => {
-  const [installments, setInstallments] = useState('000x');
-  const [installmentValue, setInstallmentValue] = useState('R$ 0.000,00');
-  const [dueDate, setDueDate] = useState('14 / 10 / 2025');
+  const [installments, setInstallments] = useState<number>(0);
+  const [installmentValue, setInstallmentValue] = useState<number>(0);
+  const [dueDate, setDueDate] = useState<string>('');
 
   const handleInstallmentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInstallments(e.target.value);
-    onInstallmentChange(e.target.value, installmentValue, dueDate);
+    const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
+    setInstallments(value);
+    onInstallmentChange(value, installmentValue, dueDate);
   };
 
   const handleInstallmentValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInstallmentValue(e.target.value);
-    onInstallmentChange(installments, e.target.value, dueDate);
+    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+    setInstallmentValue(value);
+    onInstallmentChange(installments, value, dueDate);
   };
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,10 +50,12 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 text-[rgba(196,196,196,1)] whitespace-nowrap mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="installments"
-              type="text"
-              value={installments}
+              type="number"
+              value={installments === 0 ? '' : installments}
               onChange={handleInstallmentsChange}
-              placeholder="000x"
+              placeholder="00"
+              min="1"
+              max="999"
               className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[rgba(196,196,196,1)] placeholder-[rgba(196,196,196,1)] outline-none"
             />
           </div>
@@ -64,10 +67,12 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 text-[rgba(196,196,196,1)] mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="installmentValue"
-              type="text"
-              value={installmentValue}
+              type="number"
+              value={installmentValue === 0 ? '' : installmentValue}
               onChange={handleInstallmentValueChange}
-              placeholder="R$ 0.000,00"
+              placeholder="R$ 100,00"
+              step="0.01"
+              min="0"
               className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[rgba(196,196,196,1)] placeholder-[rgba(196,196,196,1)] outline-none"
             />
           </div>
@@ -79,7 +84,7 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="dueDate"
-              type="text"
+              type="date"
               value={dueDate}
               onChange={handleDueDateChange}
               className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[#464646] outline-none"
@@ -95,4 +100,3 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
     </section>
   );
 };
-

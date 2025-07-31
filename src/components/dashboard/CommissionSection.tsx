@@ -10,11 +10,12 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
   onSubmit, 
   className = '' 
 }) => {
-  const [commission, setCommission] = useState('3,5');
+  const [commission, setCommission] = useState<number>(0);
   const [isConfirmed, setIsConfirmed] = useState(true);
 
   const handleCommissionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCommission(e.target.value);
+    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+    setCommission(value);
   };
 
   const handleConfirmToggle = () => {
@@ -39,9 +40,10 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
           <div className="self-stretch flex items-center gap-8 my-auto">
             <input
               id="commission"
-              type="text"
-              value={commission}
+              type="number"
+              value={commission === 0 ? '' : commission}
               onChange={handleCommissionChange}
+              placeholder="1,5"
               className="text-[#464646] font-semibold self-stretch my-auto bg-transparent outline-none w-8"
             />
             <span className="text-[#464646] text-right font-black self-stretch my-auto">
