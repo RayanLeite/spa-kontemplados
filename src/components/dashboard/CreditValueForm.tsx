@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 
 interface CreditValueFormProps {
-  onValuesChange: (creditValue: string, entryValue: string) => void;
+  onValuesChange: (creditValue: number, entryValue: number) => void;
   className?: string;
 }
 
@@ -10,17 +9,19 @@ export const CreditValueForm: React.FC<CreditValueFormProps> = ({
   onValuesChange, 
   className = '' 
 }) => {
-  const [creditValue, setCreditValue] = useState('R$ 445.000,00');
-  const [entryValue, setEntryValue] = useState('R$ 00.000,00');
+  const [creditValue, setCreditValue] = useState<number>(0);
+  const [entryValue, setEntryValue] = useState<number>(0);
 
   const handleCreditValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCreditValue(e.target.value);
-    onValuesChange(e.target.value, entryValue);
+    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+    setCreditValue(value);
+    onValuesChange(value, entryValue);
   };
 
   const handleEntryValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEntryValue(e.target.value);
-    onValuesChange(creditValue, e.target.value);
+    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+    setEntryValue(value);
+    onValuesChange(creditValue, value);
   };
 
   return (
@@ -43,9 +44,12 @@ export const CreditValueForm: React.FC<CreditValueFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="creditValue"
-              type="text"
-              value={creditValue}
+              type="number"
+              value={creditValue === 0 ? '' : creditValue}
               onChange={handleCreditValueChange}
+              placeholder="R$ 10.000,00"
+              step="0.01"
+              min="0"
               className="self-stretch flex min-w-60 w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[#464646] outline-none"
             />
           </div>
@@ -57,10 +61,12 @@ export const CreditValueForm: React.FC<CreditValueFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 text-[rgba(196,196,196,1)] mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="entryValue"
-              type="text"
-              value={entryValue}
+              type="number"
+              value={entryValue === 0 ? '' : entryValue}
               onChange={handleEntryValueChange}
-              placeholder="R$ 00.000,00"
+              placeholder="R$ 1.000,00"
+              step="0.01"
+              min="0"
               className="self-stretch flex min-w-60 w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[rgba(196,196,196,1)] placeholder-[rgba(196,196,196,1)] outline-none"
             />
           </div>
@@ -69,4 +75,3 @@ export const CreditValueForm: React.FC<CreditValueFormProps> = ({
     </section>
   );
 };
-

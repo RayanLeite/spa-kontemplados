@@ -10,11 +10,12 @@ import { CommissionSection } from '@/components/dashboard/CommissionSection';
 const CadastrarCarta = () => {
   const [creditType, setCreditType] = useState<string>('imovel');
   const [administrator, setAdministrator] = useState<string>('selected');
-  const [creditValue, setCreditValue] = useState<string>('R$ 445.000,00');
-  const [entryValue, setEntryValue] = useState<string>('R$ 00.000,00');
-  const [installments, setInstallments] = useState<string>('000x');
-  const [installmentValue, setInstallmentValue] = useState<string>('R$ 0.000,00');
-  const [dueDate, setDueDate] = useState<string>('14 / 10 / 2025');
+  
+  const [creditValue, setCreditValue] = useState<number>(0); 
+  const [entryValue, setEntryValue] = useState<number>(0); 
+  const [installments, setInstallments] = useState<number>(0); 
+  const [installmentValue, setInstallmentValue] = useState<number>(0); 
+  const [dueDate, setDueDate] = useState<string>(''); 
 
   const handleCreditTypeSelect = (type: string) => {
     setCreditType(type);
@@ -24,12 +25,12 @@ const CadastrarCarta = () => {
     setAdministrator(admin);
   };
 
-  const handleValuesChange = (credit: string, entry: string) => {
+  const handleValuesChange = (credit: number, entry: number) => {
     setCreditValue(credit);
     setEntryValue(entry);
   };
 
-  const handleInstallmentChange = (inst: string, instValue: string, due: string) => {
+  const handleInstallmentChange = (inst: number, instValue: number, due: string) => {
     setInstallments(inst);
     setInstallmentValue(instValue);
     setDueDate(due);
