@@ -1,8 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CommissionSectionProps {
-  onSubmit: () => void;
+  onSubmit: (commission: number) => void; // ALTERAÇÃO: Recebe a comissão
   className?: string;
 }
 
@@ -24,7 +23,7 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
 
   const handleSubmit = () => {
     if (isConfirmed) {
-      onSubmit();
+      onSubmit(commission); // ALTERAÇÃO: Passa a comissão para o componente pai
     }
   };
 
@@ -44,6 +43,9 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
               value={commission === 0 ? '' : commission}
               onChange={handleCommissionChange}
               placeholder="1,5"
+              step="0.1" // ALTERAÇÃO: Adicionado step para decimais
+              min="0"    // ALTERAÇÃO: Adicionado valor mínimo
+              max="100"  // ALTERAÇÃO: Adicionado valor máximo
               className="text-[#464646] font-semibold self-stretch my-auto bg-transparent outline-none w-8"
             />
             <span className="text-[#464646] text-right font-black self-stretch my-auto">
@@ -94,4 +96,3 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
     </section>
   );
 };
-

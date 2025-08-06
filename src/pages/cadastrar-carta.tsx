@@ -17,6 +17,10 @@ const CadastrarCarta = () => {
   const [installmentValue, setInstallmentValue] = useState<number>(0); 
   const [dueDate, setDueDate] = useState<string>(''); 
 
+  // ALTERAÇÃO: Estados adicionados para controle de loading e erro
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
   const handleCreditTypeSelect = (type: string) => {
     setCreditType(type);
   };
@@ -36,19 +40,62 @@ const CadastrarCarta = () => {
     setDueDate(due);
   };
 
-  const handleSubmit = () => {
-    const formData = {
-      creditType,
-      administrator,
-      creditValue,
-      entryValue,
-      installments,
-      installmentValue,
-      dueDate,
-    };
-    
-    console.log('Form submitted with data:', formData);
-    alert('Carta de Crédito cadastrada com sucesso!');
+  // ALTERAÇÃO: handleSubmit agora recebe a comissão e faz chamada real para API
+  const handleSubmit = async (commission: number) => {
+    // Validação dos campos obrigatórios
+    if (!creditValue || !installments || !installmentValue || !dueDate) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const formData = {
+        tipo: creditType,
+        administradora: administrator,
+        valorCredito: creditValue,
+        valorEntrada: entryValue,
+        parcelas: installments,
+        valorParcela: installmentValue,
+        vencimento: dueDate,
+        comissao: commission,
+      };
+
+      console.log('Enviando dados:', formData);
+
+      const response = await fetch('/api/cartas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao cadastrar carta');
+      }
+
+      const result = await response.json();
+      console.log('Carta cadastrada com sucesso:', result);
+      
+      alert('Carta de Crédito cadastrada com sucesso!');
+      
+      // ALTERAÇÃO: Reset do formulário após sucesso
+      setCreditValue(0);
+      setEntryValue(0);
+      setInstallments(0);
+      setInstallmentValue(0);
+      setDueDate('');
+      
+    } catch (error) {
+      console.error('Erro ao cadastrar carta:', error);
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -64,6 +111,13 @@ const CadastrarCarta = () => {
             />
             
             <div className="min-h-[704px] w-full mt-[22px] max-md:max-w-full">
+              {/* ALTERAÇÃO: Exibição de erro */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                  {error}
+                </div>
+              )}
+              
               <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
                 <CreditTypeSelector onTypeSelect={handleCreditTypeSelect} />
                 
@@ -77,7 +131,15 @@ const CadastrarCarta = () => {
                 <InstallmentForm onInstallmentChange={handleInstallmentChange} />
               </div>
               
+              {/* ALTERAÇÃO: CommissionSection agora recebe handleSubmit que inclui a comissão */}
               <CommissionSection onSubmit={handleSubmit} />
+              
+              {/* ALTERAÇÃO: Indicador de loading */}
+              {isSubmitting && (
+                <div className="text-center mt-4">
+                  <p className="text-[#464646]">Cadastrando carta...</p>
+                </div>
+              )}
             </div>
           </main>
         </div>
