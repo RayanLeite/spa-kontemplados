@@ -17,8 +17,12 @@ model Carta {
   id            String   @id @default(cuid())
   tipo          String   // "Imovel" ou "Veiculo"
   administradora String
-  parcelas      Int
-  valor         Float
+  valorCredito  Float    // Valor total do crédito
+  valorEntrada  Float    // Valor da entrada
+  parcelas      Int      // Número de parcelas
+  valorParcela  Float    // Valor de cada parcela
+  vencimento    DateTime // Data de vencimento da primeira parcela
+  comissao      Float    // Percentual de comissão sobre a venda
   status        String   @default("Ativa")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
