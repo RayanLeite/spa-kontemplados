@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface CreditTypeSelectorProps {
@@ -61,6 +60,9 @@ export const CreditTypeSelector: React.FC<CreditTypeSelectorProps> = ({
                 src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/074eea69dfe99bf3c6a17cc420e623d8b2a8f6e0?placeholderIfAbsent=true"
                 alt="Vehicle icon"
                 className="aspect-[1] object-contain w-[18px]"
+                style={{
+                  filter: 'brightness(0) saturate(100%) invert(27%) sepia(8%) saturate(1058%) hue-rotate(314deg) brightness(91%) contrast(86%)'
+                }}
               />
             </div>
             <span className="text-[#464646] text-lg font-bold self-stretch my-auto">
@@ -72,4 +74,3 @@ export const CreditTypeSelector: React.FC<CreditTypeSelectorProps> = ({
     </section>
   );
 };
-

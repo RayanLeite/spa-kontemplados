@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatCurrency, parseCurrency, formatCurrencyInput } from '@/utils/currency';
 
 interface InstallmentFormProps {
   onInstallmentChange: (installments: number, installmentValue: number, dueDate: string) => void;
@@ -12,6 +13,7 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
   const [installments, setInstallments] = useState<number>(0);
   const [installmentValue, setInstallmentValue] = useState<number>(0);
   const [dueDate, setDueDate] = useState<string>('');
+  const [installmentValueDisplay, setInstallmentValueDisplay] = useState<string>('');
 
   const handleInstallmentsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
@@ -20,9 +22,14 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
   };
 
   const handleInstallmentValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-    setInstallmentValue(value);
-    onInstallmentChange(installments, value, dueDate);
+    const inputValue = e.target.value;
+    
+    const formattedValue = formatCurrencyInput(inputValue);
+    setInstallmentValueDisplay(formattedValue);
+    
+    const numericValue = parseCurrency(formattedValue);
+    setInstallmentValue(numericValue);
+    onInstallmentChange(installments, numericValue, dueDate);
   };
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,10 +60,10 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
               type="number"
               value={installments === 0 ? '' : installments}
               onChange={handleInstallmentsChange}
-              placeholder="00"
+              placeholder="360"
               min="1"
               max="999"
-              className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[rgba(196,196,196,1)] placeholder-[rgba(196,196,196,1)] outline-none"
+              className="self-stretch flex min-w-60 w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[#464646] outline-none"
             />
           </div>
         </div>
@@ -67,13 +74,11 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
           <div className="bg-[rgba(244,244,244,1)] border flex min-h-[50px] w-full items-center gap-2.5 text-[rgba(196,196,196,1)] mt-3 p-4 rounded-[20px] border-[rgba(223,223,223,1)] border-solid">
             <input
               id="installmentValue"
-              type="number"
-              value={installmentValue === 0 ? '' : installmentValue}
+              type="text"
+              value={installmentValueDisplay}
               onChange={handleInstallmentValueChange}
-              placeholder="R$ 100,00"
-              step="0.01"
-              min="0"
-              className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[rgba(196,196,196,1)] placeholder-[rgba(196,196,196,1)] outline-none"
+              placeholder="R$ 1.250,00"
+              className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[#464646] outline-none"
             />
           </div>
         </div>
@@ -88,11 +93,6 @@ export const InstallmentForm: React.FC<InstallmentFormProps> = ({
               value={dueDate}
               onChange={handleDueDateChange}
               className="self-stretch flex w-full items-center gap-2.5 flex-1 shrink basis-[0%] my-auto bg-transparent text-[#464646] outline-none"
-            />
-            <img
-              src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/a703ce3b7c44b27ebf18ddc36b8c691b08dfdac9?placeholderIfAbsent=true"
-              alt="Calendar icon"
-              className="aspect-[1/1] object-contain w-3.5 fill-[#464646] self-stretch shrink-0 my-auto"
             />
           </div>
         </div>

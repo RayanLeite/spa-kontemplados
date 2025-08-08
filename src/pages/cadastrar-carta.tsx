@@ -17,9 +17,10 @@ const CadastrarCarta = () => {
   const [installmentValue, setInstallmentValue] = useState<number>(0); 
   const [dueDate, setDueDate] = useState<string>(''); 
 
-  // ALTERAÇÃO: Estados adicionados para controle de loading e erro
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+
+  const [resetKey, setResetKey] = useState<number>(0);
 
   const handleCreditTypeSelect = (type: string) => {
     setCreditType(type);
@@ -40,9 +41,20 @@ const CadastrarCarta = () => {
     setDueDate(due);
   };
 
-  // ALTERAÇÃO: handleSubmit agora recebe a comissão e faz chamada real para API
+  const resetAllFields = () => {
+    setCreditType('imovel');
+    setAdministrator('selected');
+    setCreditValue(0);
+    setEntryValue(0);
+    setInstallments(0);
+    setInstallmentValue(0);
+    setDueDate('');
+    setError('');
+    
+    setResetKey(prev => prev + 1);
+  };
+
   const handleSubmit = async (commission: number) => {
-    // Validação dos campos obrigatórios
     if (!creditValue || !installments || !installmentValue || !dueDate) {
       setError('Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -83,12 +95,7 @@ const CadastrarCarta = () => {
       
       alert('Carta de Crédito cadastrada com sucesso!');
       
-      // ALTERAÇÃO: Reset do formulário após sucesso
-      setCreditValue(0);
-      setEntryValue(0);
-      setInstallments(0);
-      setInstallmentValue(0);
-      setDueDate('');
+      resetAllFields();
       
     } catch (error) {
       console.error('Erro ao cadastrar carta:', error);
@@ -111,7 +118,6 @@ const CadastrarCarta = () => {
             />
             
             <div className="min-h-[704px] w-full mt-[22px] max-md:max-w-full">
-              {/* ALTERAÇÃO: Exibição de erro */}
               {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                   {error}
@@ -119,22 +125,35 @@ const CadastrarCarta = () => {
               )}
               
               <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
-                <CreditTypeSelector onTypeSelect={handleCreditTypeSelect} />
+                <CreditTypeSelector 
+                  key={`credit-type-${resetKey}`}
+                  onTypeSelect={handleCreditTypeSelect} 
+                />
                 
                 <div className="flex min-w-60 gap-[22px] flex-1 shrink basis-16 max-md:max-w-full">
-                  <AdministratorSelector onAdministratorSelect={handleAdministratorSelect} />
+                  <AdministratorSelector 
+                    key={`administrator-${resetKey}`}
+                    onAdministratorSelect={handleAdministratorSelect} 
+                  />
                 </div>
               </div>
               
               <div className="flex w-full gap-[22px] flex-wrap mt-[22px] max-md:max-w-full">
-                <CreditValueForm onValuesChange={handleValuesChange} />
-                <InstallmentForm onInstallmentChange={handleInstallmentChange} />
+                <CreditValueForm 
+                  key={`credit-value-${resetKey}`}
+                  onValuesChange={handleValuesChange} 
+                />
+                <InstallmentForm 
+                  key={`installment-${resetKey}`}
+                  onInstallmentChange={handleInstallmentChange} 
+                />
               </div>
               
-              {/* ALTERAÇÃO: CommissionSection agora recebe handleSubmit que inclui a comissão */}
-              <CommissionSection onSubmit={handleSubmit} />
+              <CommissionSection 
+                key={`commission-${resetKey}`}
+                onSubmit={handleSubmit} 
+              />
               
-              {/* ALTERAÇÃO: Indicador de loading */}
               {isSubmitting && (
                 <div className="text-center mt-4">
                   <p className="text-[#464646]">Cadastrando carta...</p>
