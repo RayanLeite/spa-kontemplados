@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface CommissionSectionProps {
-  onSubmit: (commission: number) => void; // ALTERAÇÃO: Recebe a comissão
+  onSubmit: (commission: number) => void;
   className?: string;
 }
 
@@ -11,6 +11,11 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
 }) => {
   const [commission, setCommission] = useState<number>(0);
   const [isConfirmed, setIsConfirmed] = useState(true);
+
+  useEffect(() => {
+    setCommission(0);
+    setIsConfirmed(true);
+  }, []);
 
   const handleCommissionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
@@ -23,7 +28,7 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
 
   const handleSubmit = () => {
     if (isConfirmed) {
-      onSubmit(commission); // ALTERAÇÃO: Passa a comissão para o componente pai
+      onSubmit(commission);
     }
   };
 
@@ -43,9 +48,9 @@ export const CommissionSection: React.FC<CommissionSectionProps> = ({
               value={commission === 0 ? '' : commission}
               onChange={handleCommissionChange}
               placeholder="1,5"
-              step="0.1" // ALTERAÇÃO: Adicionado step para decimais
-              min="0"    // ALTERAÇÃO: Adicionado valor mínimo
-              max="100"  // ALTERAÇÃO: Adicionado valor máximo
+              step="0.1"
+              min="0"
+              max="100"
               className="text-[#464646] font-semibold self-stretch my-auto bg-transparent outline-none w-8"
             />
             <span className="text-[#464646] text-right font-black self-stretch my-auto">
