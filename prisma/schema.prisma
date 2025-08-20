@@ -15,6 +15,7 @@ datasource kontemplados_db {
 
 model Carta {
   id            String   @id @default(cuid())
+  idCarta       String   @unique
   tipo          String   // "Imovel" ou "Veiculo"
   administradora String
   valorCredito  Float    // Valor total do crédito
