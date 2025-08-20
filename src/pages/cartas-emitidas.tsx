@@ -4,11 +4,12 @@ import { Header } from '@/components/dashboard/Header';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/utils/currency'; // Reutilizando a função de formatação
+import { formatCurrency } from '@/utils/currency';
 
 // Interface para tipagem das cartas
 interface Carta {
   id: string;
+  idCarta: string;              // << ADICIONADO
   tipo: string;
   administradora: string;
   valorCredito: number;
@@ -24,7 +25,7 @@ interface Carta {
 
 const CartasEmitidas = () => {
   const [searchId, setSearchId] = useState('');
-  
+
   // Estados para dados do banco e controle de loading/erro
   const [cartas, setCartas] = useState<Carta[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -41,13 +42,13 @@ const CartasEmitidas = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await fetch('/api/cartas');
-      
+
       if (!response.ok) {
         throw new Error('Erro ao buscar cartas');
       }
-      
+
       const data = await response.json();
       setCartas(data);
     } catch (error) {
@@ -65,7 +66,7 @@ const CartasEmitidas = () => {
 
   // Função para determinar cor do status
   const getStatusColorClass = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase?.()) {
       case 'ativa':
         return 'text-green-600';
       case 'reservada':
@@ -79,19 +80,22 @@ const CartasEmitidas = () => {
 
   // Função para filtrar e ordenar cartas
   const getFilteredAndSortedCartas = () => {
-    let filtered = cartas.filter(carta => {
-      // Filtro por ID
-      const matchesId = carta.id.toLowerCase().includes(searchId.toLowerCase());
-      
+    let filtered = cartas.filter((carta) => {
+      // Filtro por ID da Carta (prioriza idCarta; fallback para id interno)
+      const term = searchId.toLowerCase();
+      const matchesId =
+        (carta.idCarta?.toLowerCase?.().includes(term) ?? false) ||
+        (carta.id?.toLowerCase?.().includes(term) ?? false);
+
       // Filtro por status
       const matchesStatus = statusFilter === 'all' || carta.status.toLowerCase() === statusFilter;
-      
+
       // Filtro por administradora
       const matchesAdmin = adminFilter === 'all' || carta.administradora.toLowerCase() === adminFilter;
-      
+
       // Filtro por parcelas
       const matchesParcelas = parcelasFilter === 'all' || carta.parcelas.toString() === parcelasFilter;
-      
+
       return matchesId && matchesStatus && matchesAdmin && matchesParcelas;
     });
 
@@ -123,7 +127,7 @@ const CartasEmitidas = () => {
       }
 
       // Atualiza a lista removendo a carta
-      setCartas(cartas.filter(carta => carta.id !== id));
+      setCartas((prev) => prev.filter((carta) => carta.id !== id));
       alert('Carta removida com sucesso!');
     } catch (error) {
       console.error('Erro ao remover carta:', error);
@@ -138,24 +142,19 @@ const CartasEmitidas = () => {
       <div className="flex min-w-60 w-full flex-col items-stretch justify-center flex-1 shrink basis-[0%] p-[22px] max-md:max-w-full max-md:px-5">
         <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
           <Sidebar className="bg-gradient-to-b from-gray-800 to-gray-900" />
-          
+
           <main className="bg-white min-w-60 flex-1 shrink basis-16 rounded-[32px] max-md:max-w-full">
-            <Header 
-              title="Cartas de Crédito Emitidas" 
-              className="bg-gradient-to-r from-gray-800 to-gray-900"
-            />
-            
+            <Header title="Cartas de Crédito Emitidas" className="bg-gradient-to-r from-gray-800 to-gray-900" />
+
             <div className="min-h-[704px] w-full mt-[22px] p-8 max-md:max-w-full max-md:px-5">
               {/* Page Title */}
               <h2 className="text-[26px] font-bold text-[#464646] mb-6">Cartas de Crédito Emitidas</h2>
-              
+
               {/* Exibição de erro */}
               {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                  {error}
-                </div>
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
               )}
-              
+
               {/* Filters */}
               <div className="flex flex-wrap gap-4 mb-6">
                 <Select value={sortOrder} onValueChange={setSortOrder}>
@@ -227,7 +226,7 @@ const CartasEmitidas = () => {
                 </div>
               </div>
 
-              {/* ALTERAÇÃO: Tabela customizada com estética do projeto */}
+              {/* Tabela customizada com estética do projeto */}
               {loading ? (
                 <div className="text-center py-8">
                   <p className="text-[#464646]">Carregando cartas...</p>
@@ -235,7 +234,8 @@ const CartasEmitidas = () => {
               ) : (
                 <div className="rounded-[20px] border border-[rgba(223,223,223,1)] shadow-sm overflow-hidden bg-white">
                   {/* Cabeçalho da Tabela */}
-                  <div className="bg-[rgba(244,244,244,1)] grid grid-cols-7 gap-4 p-4 font-bold text-[#464646] border-b border-[rgba(223,223,223,1)]">
+                  <div className="bg-[rgba(244,244,244,1)] grid grid-cols-8 gap-4 p-4 font-bold text-[#464646] border-b border-[rgba(223,223,223,1)]">
+                    <div className="text-left">ID da Carta</div> {/* << NOVA PRIMEIRA COLUNA */}
                     <div className="text-left">Tipo</div>
                     <div className="text-left">Status</div>
                     <div className="text-left">Administradora</div>
@@ -244,56 +244,68 @@ const CartasEmitidas = () => {
                     <div className="text-left">Valor Entrada</div>
                     <div className="text-center">Ações</div>
                   </div>
-                  
+
                   {/* Corpo da Tabela */}
                   <div className="divide-y divide-[rgba(223,223,223,1)]">
                     {filteredCartas.length > 0 ? (
                       filteredCartas.map((carta) => (
-                        <div key={carta.id} className="grid grid-cols-7 gap-4 p-4 hover:bg-gray-50 transition-colors">
+                        <div
+                          key={carta.id}
+                          className="grid grid-cols-8 gap-4 p-4 hover:bg-gray-50 transition-colors"
+                        >
+                          {/* ID da Carta */}
+                          <div className="flex items-center">
+                            <span className="font-mono text-sm text-gray-700">
+                              {carta.idCarta || '-'}
+                            </span>
+                          </div>
+
                           {/* Tipo */}
                           <div className="flex items-center gap-2 text-[#464646] font-medium">
                             <img
-                              src={carta.tipo.toLowerCase() === 'imovel' 
-                                ? "https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/6864fc147303c24a910cb0aa0ef30037641d32e4?placeholderIfAbsent=true" 
-                                : "https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/074eea69dfe99bf3c6a17cc420e623d8b2a8f6e0?placeholderIfAbsent=true"
+                              src={
+                                carta.tipo.toLowerCase() === 'imovel'
+                                  ? 'https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/6864fc147303c24a910cb0aa0ef30037641d32e4?placeholderIfAbsent=true'
+                                  : 'https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/074eea69dfe99bf3c6a17cc420e623d8b2a8f6e0?placeholderIfAbsent=true'
                               }
                               alt={`${carta.tipo} icon`}
                               className="w-4 h-4"
-                              style={carta.tipo.toLowerCase() === 'veiculo' ? {
-                                filter: 'brightness(0) saturate(100%) invert(27%) sepia(8%) saturate(1058%) hue-rotate(314deg) brightness(91%) contrast(86%)'
-                              } : {}}
+                              style={
+                                carta.tipo.toLowerCase() === 'veiculo'
+                                  ? {
+                                      filter:
+                                        'brightness(0) saturate(100%) invert(27%) sepia(8%) saturate(1058%) hue-rotate(314deg) brightness(91%) contrast(86%)',
+                                    }
+                                  : {}
+                              }
                             />
                             {carta.tipo}
                           </div>
-                          
+
                           {/* Status */}
                           <div className={`font-semibold ${getStatusColorClass(carta.status)}`}>
                             {carta.status}
                           </div>
-                          
+
                           {/* Administradora */}
-                          <div className="text-[#464646]">
-                            {carta.administradora}
-                          </div>
-                          
+                          <div className="text-[#464646]">{carta.administradora}</div>
+
                           {/* Parcelas */}
-                          <div className="text-[#464646]">
-                            {carta.parcelas}x
-                          </div>
-                          
+                          <div className="text-[#464646]">{carta.parcelas}x</div>
+
                           {/* Valor */}
                           <div className="font-bold text-[#464646]">
                             {formatCurrency(carta.valorCredito)}
                           </div>
-                          
+
                           {/* Valor Entrada */}
                           <div className="text-[#464646]">
                             {formatCurrency(carta.valorEntrada)}
                           </div>
-                          
+
                           {/* Ações */}
                           <div className="text-center">
-                            <Button 
+                            <Button
                               onClick={() => handleRemoveCarta(carta.id)}
                               className="bg-[#E8C547] hover:bg-[#E8C547]/90 text-[#464646] font-semibold px-4 py-2 rounded-[15px] text-sm"
                             >
@@ -303,9 +315,7 @@ const CartasEmitidas = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center text-gray-500">
-                        Nenhuma carta encontrada.
-                      </div>
+                      <div className="p-8 text-center text-gray-500">Nenhuma carta encontrada.</div>
                     )}
                   </div>
                 </div>
