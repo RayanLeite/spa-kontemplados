@@ -92,8 +92,8 @@ Podemos negociar?`;
 
         {/* ====== TABELA ====== */}
         {loading ? (
-          <div className="text-center py-8">
-            <p className="text-[#464646]">Carregando cartas...</p>
+          <div className="flex justify-center py-12">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600"></div>
           </div>
         ) : (
           <div className="rounded-[20px] border border-[rgba(223,223,223,1)] shadow-sm overflow-hidden bg-white">
