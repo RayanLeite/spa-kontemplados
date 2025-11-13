@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import React, { useEffect, useState } from 'react';
 import { Header } from '@/components/dashboard/Header';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatCurrency } from '@/utils/currency';
+import { CartaExt } from '@/lib/cartas';
+import Image from 'next/image';
+import { Eye, CarFront, House } from 'lucide-react';
 
 // --- mapeamento de status (UI <-> banco) ---
 const STATUS_UI = [
@@ -14,10 +15,6 @@ const STATUS_UI = [
 
 const dbToUi = (db?: string) =>
   STATUS_UI.find(s => s.db === db?.toLowerCase())?.ui ?? 'disponivel';
-const uiToDb = (ui: string) =>
-  STATUS_UI.find(s => s.ui === ui)?.db ?? 'ativa';
-const uiLabel = (ui: string) =>
-  STATUS_UI.find(s => s.ui === ui)?.label ?? 'Disponível';
 
 const statusColorByUi = (ui: string) => {
   switch (ui) {
@@ -28,331 +25,217 @@ const statusColorByUi = (ui: string) => {
   }
 };
 
-// Interface para tipagem das cartas
-interface Carta {
-  id: string;
-  idCarta: string;
-  tipo: string;
-  administradora: string;
-  valorCredito: number;
-  valorEntrada: number;
-  parcelas: number;
-  valorParcela: number;
-  vencimento: string;
-  comissao: number;
-  status: string; // armazenado no banco (ativa|reservada|vendida)
-  createdAt: string;
-  updatedAt: string;
-}
-
 const CartasEmitidas = () => {
-  const [searchId, setSearchId] = useState('');
-
   // dados
-  const [cartas, setCartas] = useState<Carta[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-
-  // filtros
-  const [sortOrder, setSortOrder] = useState<string>('desc');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [adminFilter, setAdminFilter] = useState<string>('all');
-  const [parcelasFilter, setParcelasFilter] = useState<string>('all');
+  const [cartas, setCartas] = useState<CartaExt[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // edição de status por linha
   const [editedUiStatus, setEditedUiStatus] = useState<Record<string, string>>({});
   const [savingRow, setSavingRow] = useState<Record<string, boolean>>({});
 
-  // fetch
-  const fetchCartas = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const res = await fetch('/api/cartas');
-      if (!res.ok) throw new Error('Erro ao buscar cartas');
-      const data: Carta[] = await res.json();
-      setCartas(data);
-      // inicializa estados editáveis com o que veio do banco
-      const initial: Record<string, string> = {};
-      data.forEach(c => { initial[c.id] = dbToUi(c.status); });
-      setEditedUiStatus(initial);
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message ?? 'Erro desconhecido');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // modal de detalhes
+  const [open, setOpen] = useState(false);
+  const [cartaSelecionada, setCartaSelecionada] = useState<CartaExt | null>(null);
 
-  useEffect(() => { fetchCartas(); }, []);
+  // fetch inicial
+  async function fetchCartas(signal?: AbortSignal): Promise<CartaExt[]> {
+    const r = await fetch("/api/cartas", { signal });
+    if (!r.ok) throw new Error("Falha ao carregar cartas");
+    const json = await r.json();
+    return json.items as CartaExt[];
+  }
 
-  // filtros/ordenação
-  const getFilteredAndSortedCartas = () => {
-    let filtered = cartas.filter(carta => {
-      const term = searchId.toLowerCase();
-      const matchesId =
-        (carta.idCarta?.toLowerCase?.().includes(term) ?? false) ||
-        (carta.id?.toLowerCase?.().includes(term) ?? false);
+  // DDI + DDD + número (apenas dígitos)
+  const WHATSAPP_PHONE = '5561982708672';
 
-      const matchesStatus =
-        statusFilter === 'all' || carta.status.toLowerCase() === statusFilter;
+  function makeWhatsAppUrl(c: CartaExt) {
+    const msg = `Olá! Tenho interesse em reservar esta carta:
+• Nº: ${c.id}
+• Crédito: ${formatCurrency(c.valorCredito)}
+• Entrada: ${formatCurrency(c.entrada)}
+• Parcela: ${c.parcelas}x de ${formatCurrency(c.valorParcela)}
+• Administradora: ${c.administradora ?? ''}
 
-      const matchesAdmin =
-        adminFilter === 'all' || carta.administradora.toLowerCase() === adminFilter;
+Podemos negociar?`;
+    return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msg)}`;
+  }
 
-      const matchesParcelas =
-        parcelasFilter === 'all' || carta.parcelas.toString() === parcelasFilter;
-
-      return matchesId && matchesStatus && matchesAdmin && matchesParcelas;
-    });
-
-    filtered.sort((a, b) =>
-      sortOrder === 'desc' ? b.valorCredito - a.valorCredito : a.valorCredito - b.valorCredito
-    );
-
-    return filtered;
-  };
-
-  // salvar status alterado
-  const handleSaveStatus = async (carta: Carta) => {
-    const newUi = editedUiStatus[carta.id];
-    const newDb = uiToDb(newUi);
-
-    try {
-      setSavingRow(prev => ({ ...prev, [carta.id]: true }));
-      const res = await fetch(`/api/cartas/${carta.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newDb }),
-      });
-      if (!res.ok) {
-        const { error: msg } = await res.json().catch(() => ({ error: '' }));
-        throw new Error(msg || 'Erro ao atualizar status');
-      }
-
-      // atualiza lista local
-      setCartas(prev =>
-        prev.map(c => (c.id === carta.id ? { ...c, status: newDb } : c))
-      );
-      // reseta "original" para esconder o botão de salvar
-      setEditedUiStatus(prev => ({ ...prev, [carta.id]: dbToUi(newDb) }));
-    } catch (e: any) {
-      console.error(e);
-      alert(e?.message ?? 'Erro ao atualizar status');
-    } finally {
-      setSavingRow(prev => ({ ...prev, [carta.id]: false }));
-    }
-  };
-
-  const filteredCartas = getFilteredAndSortedCartas();
+  useEffect(() => {
+    const ac = new AbortController();
+    setLoading(true);
+    fetchCartas(ac.signal)
+      .then(setCartas)
+      .catch((e) => {
+        if (e.name === "AbortError") return;
+        setError(e.message ?? "Erro");
+      })
+      .finally(() => setLoading(false));
+    return () => ac.abort();
+  }, []);
 
   return (
-    <div className="bg-white flex items-stretch justify-center min-h-screen">
-      <div className="flex min-w-60 w-full flex-col items-stretch justify-center flex-1 shrink basis-[0%] p-[22px] max-md:max-w-full max-md:px-5">
-        <div className="flex w-full gap-[22px] flex-wrap max-md:max-w-full">
-          <Sidebar className="bg-gradient-to-b from-gray-800 to-gray-900" />
+    <div className="min-h-screen bg-white">
+      {/* mantém o respiro do topo/laterais do cabeçalho */}
+      <div className="px-[22px] pt-[22px]">
+        <Header title="Cartas de Crédito Emitidas" className="bg-gradient-to-r from-gray-800 to-gray-900" />
+      </div>
 
-          <main className="bg-white min-w-60 flex-1 shrink basis-16 rounded-[32px] max-md:max-w-full">
-            <Header title="Cartas de Crédito Emitidas" className="bg-gradient-to-r from-gray-800 to-gray-900" />
+      {/* conteúdo central */}
+      <div className="mx-auto w-full max-w-[1366px] px-6 py-6">
+        {/* <h2 className="text-[26px] font-bold text-[#464646] mb-6">Cartas de Crédito Emitidas</h2> */}
 
-            <div className="min-h-[704px] w-full mt-[22px] p-8 max-md:max-w-full max-md:px-5">
-              <h2 className="text-[26px] font-bold text-[#464646] mb-6">Cartas de Crédito Emitidas</h2>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
+        )}
 
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
-              )}
+        {/* ====== TABELA ====== */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600"></div>
+          </div>
+        ) : (
+          <div className="rounded-[20px] border border-[rgba(223,223,223,1)] shadow-sm overflow-hidden bg-white">
+            {/* Cabeçalho (agora 7 colunas, adicionando “Detalhes”) */}
+            <div className="bg-[rgba(244,244,244,1)] grid grid-cols-8 p-4 font-bold text-[#464646] border-b border-[rgba(223,223,223,1)]"
+              style={{ gridTemplateColumns: '5% 5% 15% 15% 15% 15% 15% 15%' }}
+            >
+              <div className="text-center"></div>
+              <div className="text-center">Nº</div>
+              <div className="text-center">Crédito</div>
+              <div className="text-center">Entrada</div>
+              <div className="text-center">Parcela</div>
+              <div className="text-center">Administradora</div>
+              <div className="text-center">Detalhes</div>
+              <div className="text-center">Status</div>
+            </div>
 
-              {/* filtros (mantidos) */}
-              <div className="flex flex-wrap gap-4 mb-6">
-                <Select value={sortOrder} onValueChange={setSortOrder}>
-                  <SelectTrigger className="w-40 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px]">
-                    <SelectValue placeholder="Maior para Menor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="desc">Maior para Menor</SelectItem>
-                    <SelectItem value="asc">Menor para Maior</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Corpo */}
+            <div className="divide-y divide-[rgba(223,223,223,1)]">
+              {cartas.length > 0 ? (
+                cartas.map((carta) => {
+                  const currentUi  = editedUiStatus[carta.id] ?? dbToUi(carta.reserva);
+                  const originalUi = dbToUi(carta.reserva);
+                  const changed = currentUi !== originalUi;
+                  const saving = !!savingRow[carta.id];
 
-                <Select>
-                  <SelectTrigger className="w-32 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px]">
-                    <SelectValue placeholder="Invoices" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="pending">Pendentes</SelectItem>
-                  </SelectContent>
-                </Select>
+                  return (
+                    <div key={carta.id} className="grid grid-cols-8 p-4 hover:bg-gray-50 transition-colors"
+                      style={{ gridTemplateColumns: '5% 5% 15% 15% 15% 15% 15% 15%' }}
+                    >
+                      {/* Ícone conforme categoria */}
+                      <div className="flex justify-center items-center">
+                        {carta.categoria?.toLowerCase() === "imóvel" ? (
+                          <House className="w-7 h-7" color='black' />
+                        ) : carta.categoria?.toLowerCase() === "veículo" ? (
+                          <CarFront className="w-7 h-7" color='black' />
+                        ) : null}
+                      </div>
+                        
+                      {/* Nº */}
+                      <div className="flex justify-center items-center">
+                        <span className="font-mono text-sm text-gray-700">{carta.id || '-'}</span>
+                      </div>
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="ativa">Ativa</SelectItem>
-                    <SelectItem value="reservada">Reservada</SelectItem>
-                    <SelectItem value="vendida">Vendida</SelectItem>
-                  </SelectContent>
-                </Select>
+                      {/* Crédito */}
+                      <div className="font-bold text-[#464646] flex justify-center items-center">
+                        {formatCurrency(carta.valorCredito)}
+                      </div>
 
-                <Select value={adminFilter} onValueChange={setAdminFilter}>
-                  <SelectTrigger className="w-40 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px]">
-                    <SelectValue placeholder="Administradora" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="caixa">CAIXA</SelectItem>
-                  </SelectContent>
-                </Select>
+                      {/* Entrada */}
+                      <div className="text-[#464646] flex justify-center items-center">
+                        {formatCurrency(carta.entrada)}
+                      </div>
 
-                <Select value={parcelasFilter} onValueChange={setParcelasFilter}>
-                  <SelectTrigger className="w-32 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px]">
-                    <SelectValue placeholder="Parcelas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="162">162x</SelectItem>
-                    <SelectItem value="180">180x</SelectItem>
-                    <SelectItem value="240">240x</SelectItem>
-                  </SelectContent>
-                </Select>
+                      {/* Parcela (ex.: "194x de R$ 6.143,00") */}
+                      <div className="text-[#464646] flex justify-center items-center">
+                        {`${carta.parcelas}x de ${formatCurrency(carta.valorParcela)}`}
+                      </div>
 
-                <div className="flex items-center gap-2 bg-[rgba(244,244,244,1)] border border-[rgba(223,223,223,1)] rounded-[20px] px-4 py-2">
-                  <Input
-                    placeholder="Buscar por ID"
-                    value={searchId}
-                    onChange={(e) => setSearchId(e.target.value)}
-                    className="border-none bg-transparent p-0 text-[#464646] placeholder-[rgba(196,196,196,1)] focus-visible:ring-0"
-                  />
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/a703ce3b7c44b27ebf18ddc36b8c691b08dfdac9?placeholderIfAbsent=true"
-                    alt="Search icon"
-                    className="w-4 h-4"
-                  />
-                </div>
-              </div>
-
-              {/* Tabela: remove Ações; Status vai para a última coluna */}
-              {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-[#464646]">Carregando cartas...</p>
-                </div>
-              ) : (
-                <div className="rounded-[20px] border border-[rgba(223,223,223,1)] shadow-sm overflow-hidden bg-white">
-                  {/* Cabeçalho */}
-                  <div className="bg-[rgba(244,244,244,1)] grid grid-cols-7 gap-4 p-4 font-bold text-[#464646] border-b border-[rgba(223,223,223,1)]">
-                    <div className="text-left">ID da Carta</div>
-                    <div className="text-left">Tipo</div>
-                    <div className="text-left">Administradora</div>
-                    <div className="text-left">Parcelas</div>
-                    <div className="text-left">Valor</div>
-                    <div className="text-left">Valor Entrada</div>
-                    <div className="text-left">Status</div> {/* última coluna */}
-                  </div>
-
-                  {/* Corpo */}
-                  <div className="divide-y divide-[rgba(223,223,223,1)]">
-                    {filteredCartas.length > 0 ? (
-                      filteredCartas.map((carta) => {
-                        const currentUi = editedUiStatus[carta.id] ?? dbToUi(carta.status);
-                        const originalUi = dbToUi(carta.status);
-                        const changed = currentUi !== originalUi;
-                        const saving = !!savingRow[carta.id];
-
-                        return (
-                          <div key={carta.id} className="grid grid-cols-7 gap-4 p-4 hover:bg-gray-50 transition-colors">
-                            {/* ID da Carta */}
-                            <div className="flex items-center">
-                              <span className="font-mono text-sm text-gray-700">{carta.idCarta || '-'}</span>
-                            </div>
-
-                            {/* Tipo */}
-                            <div className="flex items-center gap-2 text-[#464646] font-medium">
-                              <img
-                                src={
-                                  carta.tipo.toLowerCase() === 'imovel'
-                                    ? 'https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/6864fc147303c24a910cb0aa0ef30037641d32e4?placeholderIfAbsent=true'
-                                    : 'https://api.builder.io/api/v1/image/assets/fe7eea92ce2f44c0a1ab07023d4ff992/074eea69dfe99bf3c6a17cc420e623d8b2a8f6e0?placeholderIfAbsent=true'
-                                }
-                                alt={`${carta.tipo} icon`}
-                                className="w-4 h-4"
-                                style={
-                                  carta.tipo.toLowerCase() === 'veiculo'
-                                    ? { filter: 'brightness(0) saturate(100%) invert(27%) sepia(8%) saturate(1058%) hue-rotate(314deg) brightness(91%) contrast(86%)' }
-                                    : {}
-                                }
-                              />
-                              {carta.tipo}
-                            </div>
-
-                            {/* Administradora */}
-                            <div className="text-[#464646] flex items-center">
-                              {carta.administradora}
-                            </div>
-
-                            {/* Parcelas */}
-                            <div className="text-[#464646] flex items-center">{carta.parcelas}x</div>
-
-                            {/* Valor */}
-                            <div className="font-bold text-[#464646] flex items-center">
-                              {formatCurrency(carta.valorCredito)}
-                            </div>
-
-                            {/* Valor Entrada */}
-                            <div className="text-[#464646] flex items-center">
-                              {formatCurrency(carta.valorEntrada)}
-                            </div>
-
-                            {/* Status (dropdown + salvar) */}
-                            <div className="flex items-center gap-3">
-                              <Select
-                                value={currentUi}
-                                onValueChange={(v) =>
-                                  setEditedUiStatus((prev) => ({ ...prev, [carta.id]: v }))
-                                }
-                                disabled={saving}
-                              >
-                                <SelectTrigger
-                                  className={`w-30 bg-[rgba(244,244,244,1)] border-[rgba(223,223,223,1)] rounded-[20px] ${statusColorByUi(currentUi)}`}
-                                >
-                                  <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {STATUS_UI.map((s) => (
-                                    <SelectItem key={s.ui} value={s.ui}>
-                                      {s.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              {changed && (
-                                <button
-                                  onClick={() => handleSaveStatus(carta)}
-                                  disabled={saving}
-                                  title="Salvar"
-                                  className={`flex items-center gap-2 px-3 py-2 rounded-[12px] border border-[rgba(223,223,223,1)] shadow-sm ${saving ? 'opacity-60 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                                >
-                                  {/* ícone de disquete (inline SVG) */}
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="black" className="w-4 h-4">
-                                    <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12l2-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm-1 6h8v5H6v-5z" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
+                      {/* Administradora (logo, se houver) */}
+                      <div className="text-[#464646] flex justify-center items-center">
+                        {carta.administradoraImg ? (
+                          <div className="relative h-8 w-24">
+                            <Image
+                              src={carta.administradoraImg}
+                              alt={`Logo ${carta.administradora ?? 'Administradora'}`}
+                              fill
+                              style={{ objectFit: 'contain' }}
+                              sizes="96px"
+                              priority={false}
+                            />
                           </div>
-                        );
-                      })
-                    ) : (
-                      <div className="p-8 text-center text-gray-500">Nenhuma carta encontrada.</div>
-                    )}
-                  </div>
-                </div>
+                        ) : (
+                          <span className="text-gray-500">—</span>
+                        )}
+                      </div>
+
+                      {/* Detalhes (olho) */}
+                      <div className="flex justify-center items-center">
+                        <button
+                          type="button"
+                          onClick={() => { setCartaSelecionada(carta); setOpen(true); }}
+                          className="h-9 w-9 inline-flex items-center justify-center rounded-full border border-[rgba(223,223,223,1)] hover:bg-gray-50 cursor-pointer"
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4 text-[#464646]" />
+                        </button>
+                      </div>
+
+                      {/* Status (botão WhatsApp ou “Reservado”) */}
+                      <div className="flex justify-center items-center">
+                        {String(carta.reserva).toLowerCase() === 'reservar' ? (
+                          <a
+                            href={makeWhatsAppUrl(carta)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-[12px] bg-teal-600 px-4 py-2 font-semibold text-white hover:bg-teal-700 transition"
+                            title="Negociar via WhatsApp"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="h-4 w-4 fill-current">
+                              <path d="M19.11 17.44c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.6.14-.17.27-.69.88-.85 1.06-.16.18-.31.2-.58.07-.27-.14-1.13-.42-2.16-1.34-.8-.7-1.34-1.56-1.5-1.82-.16-.27-.02-.42.12-.56.13-.13.27-.31.4-.47.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.47-.07-.14-.6-1.45-.82-1.99-.22-.53-.44-.46-.6-.46h-.52c-.18 0-.47.07-.72.34-.25.27-.95.93-.95 2.27s.98 2.64 1.12 2.82c.14.18 1.93 2.95 4.68 4.02.65.28 1.16.45 1.56.58.65.21 1.24.18 1.71.11.52-.08 1.6-.65 1.83-1.28.23-.62.23-1.16.16-1.28-.07-.11-.25-.18-.52-.31zM16.04 3.2c-7.09 0-12.84 5.75-12.84 12.84 0 2.27.61 4.5 1.77 6.46L3.2 28.8l6.52-1.71a12.79 12.79 0 0 0 6.32 1.7c7.09 0 12.84-5.75 12.84-12.84S23.13 3.2 16.04 3.2zm0 23.37c-2.03 0-4.02-.53-5.77-1.53l-.41-.24-3.87 1.02 1.04-3.77-.25-.39a10.44 10.44 0 0 1-1.6-5.58c0-5.77 4.69-10.46 10.46-10.46S26.5 10.31 26.5 16.08 21.81 26.57 16.04 26.57z"/>
+                            </svg>
+                            <span>Negociar</span>
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center justify-center rounded-[12px] bg-red-600 px-4 py-2 font-semibold text-white">
+                            Reservado
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-8 text-center text-gray-500">Nenhuma carta encontrada.</div>
               )}
             </div>
-          </main>
-        </div>
+          </div>
+        )}
+
+        {/* Modal de detalhes (somente campos que existem no JSON) */}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-[520px] !bg-white !text-black border border-gray-200">
+            <DialogHeader>
+              <DialogTitle>Informação</DialogTitle>
+            </DialogHeader>
+
+            {cartaSelecionada && (
+              <div className="space-y-2 text-[15px]">
+                <div><span className="font-semibold">Código:</span> {cartaSelecionada.id}</div>
+                <div><span className="font-semibold">Nome:</span> {cartaSelecionada.categoria}</div>
+                <div><span className="font-semibold">Crédito:</span> {cartaSelecionada.valorCreditoFmt ?? formatCurrency(cartaSelecionada.valorCredito)}</div>
+                <div><span className="font-semibold">Entrada:</span> {cartaSelecionada.entradaFmt ?? formatCurrency(cartaSelecionada.entrada)}</div>
+                <div><span className="font-semibold">Prazo:</span> {cartaSelecionada.parcelas}x</div>
+                <div><span className="font-semibold">Parcelas:</span> {cartaSelecionada.valorParcelaFmt ?? formatCurrency(cartaSelecionada.valorParcela)}</div>
+                <div><span className="font-semibold">Fundo Comum:</span> {cartaSelecionada.fundoFmt ?? formatCurrency(cartaSelecionada.fundo)}</div>
+                <div><span className="font-semibold">Administradora:</span> {cartaSelecionada.administradora}</div>
+                <div><span className="font-semibold">Situação:</span> {cartaSelecionada.reserva}</div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
